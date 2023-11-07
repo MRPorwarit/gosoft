@@ -26,7 +26,7 @@ io.on('connection', (socket) => {
             createWav(left16)
                 .then(filePath => {
                     console.log(`ไฟล์ WAV ถูกสร้างไว้ที่: ${filePath}`);
-                    // stt(filePath);
+                    stt(filePath);
                 })
                 .catch(error => {
                     console.error('เกิดข้อผิดพลาดในการสร้างไฟล์ WAV:', error);
