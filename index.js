@@ -21,11 +21,12 @@ io.on('connection', (socket) => {
     console.log('User connected')
     socket.on('audioData', (left16) => {
         console.log('do this')
-        console.log(left16)
+        //console.log(left16)
         if (left16 && left16.length > 0) {
             createWav(left16)
                 .then(filePath => {
                     console.log(`ไฟล์ WAV ถูกสร้างไว้ที่: ${filePath}`);
+                    // stt(filePath);
                 })
                 .catch(error => {
                     console.error('เกิดข้อผิดพลาดในการสร้างไฟล์ WAV:', error);
@@ -39,27 +40,98 @@ io.on('connection', (socket) => {
     });
 });
 
+
 async function stt(filePath) {
-    const form = new FormData();
-    form.append("file", filePath)
+    try {
+        var userTime = new Date();
+        var form = new FormData();
+        var header = { 'x-access-token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImNwY2FsbGNlbnRlckBraW5wby5jb20udGgiLCJleHAiOjE5MzkxMjY3NDl9.0UIschPQwJp1euUk3el3WFyY_AC2_wO5jq9F4yjdJeo' };
 
-    const result = await fetch(`http://boonchuai-eks-ingress-799182153.ap-southeast-1.elb.amazonaws.com/api/sttinfer/th`, {
-        method: "POST",
-        body: form,
-        headers: {
-            'x-access-token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImNwY2FsbGNlbnRlckBraW5wby5jb20udGgiLCJleHAiOjE5MzkxMjY3NDl9.0UIschPQwJp1euUk3el3WFyY_AC2_wO5jq9F4yjdJeo' // แทน YOUR_ACCESS_TOKEN ด้วยโทเคนของคุณ
+        const stream = fs.createReadStream(filePath);
+        form.append('wav', stream, 'file.wav');
+        //form.append('wav', fs.readFileSync(filePath), 'file.wav');
+
+        var data = await request('http://boonchuai-eks-ingress-799182153.ap-southeast-1.elb.amazonaws.com/api/sttinfer/th', form, header);
+
+        if (data) {
+            console.log('Prediction :', data.prediction);
+            return {
+                messages: [{
+                    user: users.cropUser(user),
+                    content: {
+                        type: 'text',
+                        message: data.prediction,
+                        date: userTime
+                    }
+                }]
+            }
         }
-      })
-      const data = await result.json()
 
-      if (data && data.prediction) {
-        console.log(data);
-        Test_STT = data.prediction;
-        console.log(Test_STT);
-      } else {
-        console.error('Error Type');
-      }
+        return null;
+    } catch (e) {
+        return Promise.reject(e);
+    } finally {
+        fs.unlink(filePath, err => {
+            if (err) {
+                logger.error(`cannot remove file "${filePath}".`, err);
+            } else {
+                logger.debug(`remove file "${filePath}" successfully.`);
+            }
+        });
+    }
 }
+
+
+// async function nlp(text) {
+//     const form = new FormData()
+//     form.append("userId", "newsandee")
+//     form.append("device", "A02")
+//     form.append("language", "th")
+//     form.append("query", text)
+//     const result = await fetch(`http://3.1.123.125/chatbot`, {
+//       method: "POST",
+//       body: form
+//     })
+//     const data = await result.json()
+
+//     if (data && data.Content && data.Content.Answer) {
+//       console.log(data);
+//       BotAnswer = data.Content.Answer;
+//       if(BotAnswer === 'detected'){
+//         BotAnswer = data.Content.Text
+//         console.log(data.Content.Text);
+//       }
+//       tts(BotAnswer);
+//     } else {
+//       console.error('Error Type');
+//     }
+//   }
+
+
+//   async function tts(BotAnswer) {
+//     const form = new FormData();
+//     form.append("text", BotAnswer);
+
+//     try {
+//       const response = await fetch('http://boonchuai-eks-ingress-799182153.ap-southeast-1.elb.amazonaws.com/tts', {
+//         method: 'POST',
+//         body: form,
+//         headers: {
+//           'x-access-token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImNwY2FsbGNlbnRlckBraW5wby5jb20udGgiLCJleHAiOjE5MzkxMjY3NDl9.0UIschPQwJp1euUk3el3WFyY_AC2_wO5jq9F4yjdJeo' // แทน YOUR_ACCESS_TOKEN ด้วยโทเคนของคุณ
+//         }
+//       });
+
+//       if (response.ok) {
+//         const wavBlob = await response.blob();
+//         const wavUrl = URL.createObjectURL(wavBlob);
+//         playAudio(wavUrl);
+//       } else {
+//         console.error('Failed to call the TTS API:', response.status, response.statusText);
+//       }
+//     } catch (error) {
+//       console.error('Error calling the TTS API:', error);
+//     }
+//   }
 
 
 async function createWav(data) {
@@ -128,3 +200,4 @@ async function createWav(data) {
 server.listen(5050, () => {
     console.log('listening on port 5050');
 });
+
