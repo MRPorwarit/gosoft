@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
+const socketIo = require('socket.io');
 
 const { Server } = require('socket.io');
 const io = new Server(server);
@@ -10,12 +11,30 @@ const fs = require('fs')
 
 app.use(express.static('D:/Screen_Face/bot_eyes'));
 
-app.get('/', function (req, res) {
+app.get('/', function (_req, res) {
     res.sendFile(__dirname + '/index.html');
 });
+// app.get('/script.js', function (_req, res) {
+//     res.sendFile(__dirname + '/script.js');
+// });
+
+app.get('/play', function (req, res) {
+    res.writeHead(200, { 'Content-Type': 'audio/wav' });
+
+    fs.exists('output.wav', function (exists) {
+        if (exists) {
+            var rstream = fs.createReadStream('output.wav');
+            rstream.pipe(res);
+        } else {
+            res.end('404');
+        }
+    });
+});
+
 
 io.on('connection', async (socket) => {
     console.log('User connected')
+
     socket.on('audioData', async (left16) => {
 
         if (left16 && left16.length > 0) {
@@ -24,6 +43,7 @@ io.on('connection', async (socket) => {
                 //console.log(`ไฟล์ WAV ถูกสร้างไว้ที่: ${filePath}`);
                 console.log('connect to stt!');
                 await stt(filePath);
+
             } catch (error) {
                 console.error('เกิดข้อผิดพลาด:', error);
             }
@@ -31,16 +51,11 @@ io.on('connection', async (socket) => {
             console.error('left16 ไม่มีข้อมูลเสียง');
         }
     });
+
     socket.on('disconnect', () => {
         console.log('User disconnected')
     });
 });
-
-
-async function playAudio(audioUrl) {
-    const audio = new Audio(audioUrl);
-    audio.play();
-}
 
 
 async function stt(filePath) {
@@ -113,7 +128,7 @@ async function nlp(text) {
         //console.log(BotAnswer);
         if (BotAnswer === 'detected') {
             BotAnswer = data.Content.Text
-            console.log('detected :',BotAnswer);
+            console.log('detected :', BotAnswer);
         } else {
             console.log('Bot Answer :', BotAnswer);
         }
@@ -138,12 +153,17 @@ async function tts(BotAnswer) {
         });
 
         if (response.ok) {
-            console.log('this now');
-            //console.log(response);
+
+            // const wavData = await response.blob();
+            // const audioUrl = URL.createObjectURL(wavData);
+            // io.emit('audioUrl', audioUrl);
 
             const wavArrayBuffer = await response.arrayBuffer();
             const wavBuffer = Buffer.from(wavArrayBuffer); // แปลงเป็น Buffer
             await fs.promises.writeFile('output.wav', wavBuffer); // เขียนลงในไฟล์
+
+            const audioUrl = 'http://localhost:9090/output.wav'; // กำหนด URL ของไฟล์เสียง
+            io.emit('audioUrl', audioUrl);
 
         } else {
             console.error('Failed to call the TTS API:', response.status, response.statusText);

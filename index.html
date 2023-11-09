@@ -11,14 +11,19 @@
 
     <img id="image" src="facebot.gif" alt="Image">
     <button id="micButton">Start Recording</button>
+    <button id="play-button">Play Sound</button>
+
     <script src="/socket.io/socket.io.js"></script>
-    
+    <!-- <script type="module" src="script.js"></script> -->
+
     <script>
 
         var socket = io();
         const audioList = [];
         const SAMPLE_RATE = 44100;
         const micButton = document.getElementById('micButton')
+        // const playButton = document.getElementById('play-button');
+        // let audio = new Audio();
         let isRecording = false
         let bufferSize = 2048,
             AudioContext,
@@ -26,6 +31,44 @@
             processor,
             input,
             globalStream;
+
+
+        // playButton.addEventListener('click', () => {
+        //     playAudio(audioUrl);
+        // });
+
+        // async function playAudio(audioUrl) {
+        //     clearAudio();
+        //     if (audio.src === audioUrl) {
+        //         if (audio.paused) {
+        //             audio.play().catch((error) => {
+        //                 console.error('Failed to play audio:', error);
+        //             });
+        //         } else {
+        //             audio.pause();
+        //         }
+        //     } else {
+        //         audio.src = audioUrl;
+        //         audio.play().catch((error) => {
+        //             console.error('Failed to play audio:', error);
+        //         });
+        //     }
+        // }
+
+        // function clearAudio() {
+        //     if (audio.src) {
+        //         URL.revokeObjectURL(audio.src);
+        //         audio.src = '';
+        //     }
+        // }
+
+        const audio = new Audio();
+        socket.on('audioUrl', (url) => {
+            audio.src = url;
+            audio.play().catch((error) => {
+                console.error('Failed to play audio:', error);
+            });
+        });
 
         //audioStream constraints
         const constraints = {
