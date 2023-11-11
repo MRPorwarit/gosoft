@@ -18,18 +18,18 @@ app.get('/', function (_req, res) {
 //     res.sendFile(__dirname + '/script.js');
 // });
 
-app.get('/play', function (req, res) {
-    res.writeHead(200, { 'Content-Type': 'audio/wav' });
+// app.get('/play', function (req, res) {
+//     res.writeHead(200, { 'Content-Type': 'audio/wav' });
 
-    fs.exists('output.wav', function (exists) {
-        if (exists) {
-            var rstream = fs.createReadStream('output.wav');
-            rstream.pipe(res);
-        } else {
-            res.end('404');
-        }
-    });
-});
+//     fs.exists('output.wav', function (exists) {
+//         if (exists) {
+//             var rstream = fs.createReadStream('output.wav');
+//             rstream.pipe(res);
+//         } else {
+//             res.end('404');
+//         }
+//     });
+// });
 
 
 io.on('connection', async (socket) => {
@@ -162,7 +162,19 @@ async function tts(BotAnswer) {
             const wavBuffer = Buffer.from(wavArrayBuffer); // แปลงเป็น Buffer
             await fs.promises.writeFile('output.wav', wavBuffer); // เขียนลงในไฟล์
 
-            const audioUrl = 'http://localhost:9090/output.wav'; // กำหนด URL ของไฟล์เสียง
+            const player = require('play-sound')();
+
+            const filePath = 'D:/Screen_Face/test/output.wav';
+
+            player.play(filePath, (err) => {
+                if (err) {
+                    console.error('Error playing audio:', err);
+                } else {
+                    console.log('Audio played successfully');
+                }
+            });
+
+            const audioUrl = 'http://localhost:9090/output.wav';
             io.emit('audioUrl', audioUrl);
 
         } else {
