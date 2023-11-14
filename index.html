@@ -12,7 +12,6 @@
 
     <img id="image" src="facebot.gif" alt="Image">
     <button id="micButton">Start Recording</button>
-    <button id="play-button">Play Sound</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <!-- <script type="module" src="script.js"></script> -->
@@ -23,8 +22,7 @@
         const audioList = [];
         const SAMPLE_RATE = 44100;
         const micButton = document.getElementById('micButton')
-        // const playButton = document.getElementById('play-button');
-        // let audio = new Audio();
+        // const playButton = document.getElementById('playButton');
         let isRecording = false
         let bufferSize = 2048,
             AudioContext,
@@ -38,6 +36,7 @@
             audio: true,
             video: false,
         };
+
         var pcmRecord = {
             clearData: _ => pcmRecord.buffer = new Float32Array(),
             clearTimer: timerName => {
@@ -229,6 +228,7 @@
             };
         }
 
+
         function initRecording() {
             AudioContext = window.AudioContext || window.webkitAudioContext;
             context = new AudioContext({ sampleRate: SAMPLE_RATE });
@@ -330,6 +330,52 @@
             }
         }
 
+        socket.on('botText', (BotAnswer) => {
+
+            const audio = new Audio();
+            tts(BotAnswer);
+
+            async function tts(BotAnswer) {
+                const form = new FormData();
+                form.append("text", BotAnswer);
+
+                try {
+                    const response = await fetch('http://boonchuai-eks-ingress-799182153.ap-southeast-1.elb.amazonaws.com/tts', {
+                        method: 'POST',
+                        body: form,
+                        headers: {
+                            'x-access-token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImNwY2FsbGNlbnRlckBraW5wby5jb20udGgiLCJleHAiOjE5MzkxMjY3NDl9.0UIschPQwJp1euUk3el3WFyY_AC2_wO5jq9F4yjdJeo' // แทน YOUR_ACCESS_TOKEN ด้วยโทเคนของคุณ
+                        }
+                    });
+
+                    if (response.ok) {
+
+                        const wavBlob = await response.blob();
+                        const wavUrl = URL.createObjectURL(wavBlob);
+                        playAudio(wavUrl);
+
+                    } else {
+                        console.error('Failed to call the TTS API:', response.status, response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error calling the TTS API:', error);
+                }
+            }
+
+            async function playAudio(wavUrl) {
+                if (audio.src) {
+                    URL.revokeObjectURL(audio.src);
+                    audio.src = '';
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+
+                audio.src = wavUrl;
+                audio.play().catch((error) => {
+                    console.error('Failed to play audio:', error);
+                });
+            }
+        });
 
     </script>
 

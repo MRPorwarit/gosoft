@@ -14,23 +14,11 @@ app.use(express.static('D:/Screen_Face/bot_eyes'));
 app.get('/', function (_req, res) {
     res.sendFile(__dirname + '/index.html');
 });
-// app.get('/script.js', function (_req, res) {
-//     res.sendFile(__dirname + '/script.js');
-// });
 
-// app.get('/play', function (req, res) {
-//     res.writeHead(200, { 'Content-Type': 'audio/wav' });
-
-//     fs.exists('output.wav', function (exists) {
-//         if (exists) {
-//             var rstream = fs.createReadStream('output.wav');
-//             rstream.pipe(res);
-//         } else {
-//             res.end('404');
-//         }
-//     });
-// });
-
+app.get('/styles.css', function (_req, res) {
+    res.type('text/css');
+    res.sendFile(__dirname + '/styles.css');
+});
 
 io.on('connection', async (socket) => {
     console.log('User connected')
@@ -41,7 +29,7 @@ io.on('connection', async (socket) => {
             try {
                 const filePath = await createWav(left16);
                 //console.log(`ไฟล์ WAV ถูกสร้างไว้ที่: ${filePath}`);
-                console.log('connect to stt!');
+                console.log('Conversation with SANDEE!');
                 await stt(filePath);
 
             } catch (error) {
@@ -125,65 +113,61 @@ async function nlp(text) {
 
     if (data && data.Content && data.Content.Answer) {
         BotAnswer = data.Content.Answer;
-        //console.log(BotAnswer);
         if (BotAnswer === 'detected') {
             BotAnswer = data.Content.Text
-            console.log('detected :', BotAnswer);
         } else {
-            console.log('Bot Answer :', BotAnswer);
+
         }
-        tts(BotAnswer);
+        io.emit('botText', BotAnswer);
+        console.log('Bot Answer :', BotAnswer);
     } else {
         console.error('Error Type');
     }
 }
 
 
-async function tts(BotAnswer) {
-    const form = new FormData();
-    form.append("text", BotAnswer);
+// async function tts(BotAnswer) {
+//     const form = new FormData();
+//     form.append("text", BotAnswer);
 
-    try {
-        const response = await fetch('http://boonchuai-eks-ingress-799182153.ap-southeast-1.elb.amazonaws.com/tts', {
-            method: 'POST',
-            body: form,
-            headers: {
-                'x-access-token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImNwY2FsbGNlbnRlckBraW5wby5jb20udGgiLCJleHAiOjE5MzkxMjY3NDl9.0UIschPQwJp1euUk3el3WFyY_AC2_wO5jq9F4yjdJeo' // แทน YOUR_ACCESS_TOKEN ด้วยโทเคนของคุณ
-            }
-        });
+//     try {
+//         const response = await fetch('http://boonchuai-eks-ingress-799182153.ap-southeast-1.elb.amazonaws.com/tts', {
+//             method: 'POST',
+//             body: form,
+//             headers: {
+//                 'x-access-token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImNwY2FsbGNlbnRlckBraW5wby5jb20udGgiLCJleHAiOjE5MzkxMjY3NDl9.0UIschPQwJp1euUk3el3WFyY_AC2_wO5jq9F4yjdJeo' // แทน YOUR_ACCESS_TOKEN ด้วยโทเคนของคุณ
+//             }
+//         });
 
-        if (response.ok) {
+//         if (response.ok) {
 
-            // const wavData = await response.blob();
-            // const audioUrl = URL.createObjectURL(wavData);
-            // io.emit('audioUrl', audioUrl);
+//             // const wavData = await response.blob();
+//             // const audioUrl = URL.createObjectURL(wavData);
+//             // io.emit('audioUrl', audioUrl);
 
-            const wavArrayBuffer = await response.arrayBuffer();
-            const wavBuffer = Buffer.from(wavArrayBuffer); // แปลงเป็น Buffer
-            await fs.promises.writeFile('output.wav', wavBuffer); // เขียนลงในไฟล์
+//             const wavArrayBuffer = await response.arrayBuffer();
+//             const wavBuffer = Buffer.from(wavArrayBuffer); // แปลงเป็น Buffer
+//             await fs.promises.writeFile('output.wav', wavBuffer); // เขียนลงในไฟล์
 
-            const player = require('play-sound')();
+//             const player = require('play-sound')();
 
-            const filePath = 'D:/Screen_Face/test/output.wav';
+//             const filePath = 'D:/Screen_Face/test/output.wav';
 
-            player.play(filePath, (err) => {
-                if (err) {
-                    console.error('Error playing audio:', err);
-                } else {
-                    console.log('Audio played successfully');
-                }
-            });
+//             player.play(filePath, (err) => {
+//                 if (err) {
+//                     console.error('Error playing audio:', err);
+//                 } else {
+//                     console.log('Audio played successfully');
+//                 }
+//             });
 
-            const audioUrl = 'http://localhost:9090/output.wav';
-            io.emit('audioUrl', audioUrl);
-
-        } else {
-            console.error('Failed to call the TTS API:', response.status, response.statusText);
-        }
-    } catch (error) {
-        console.error('Error calling the TTS API:', error);
-    }
-}
+//         } else {
+//             console.error('Failed to call the TTS API:', response.status, response.statusText);
+//         }
+//     } catch (error) {
+//         console.error('Error calling the TTS API:', error);
+//     }
+// }
 
 
 async function createWav(data) {
@@ -244,7 +228,6 @@ async function createWav(data) {
 
     await fs.promises.writeFile(filePath, header);
     await fs.promises.appendFile(filePath, data);
-    //logger.debug(`created WAV file "${filePath}".`);
 
     return filePath;
 }
