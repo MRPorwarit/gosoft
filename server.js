@@ -20,6 +20,10 @@ app.get('/styles.css', function (_req, res) {
     res.sendFile(__dirname + '/styles.css');
 });
 
+app.get('/script.js', function (_req, res) {
+    res.sendFile(__dirname + '/script.js');
+});
+
 io.on('connection', async (socket) => {
     console.log('User connected')
 
