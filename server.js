@@ -72,7 +72,46 @@ async function stt(filePath) {
         nlp(text);
 
         if (text) {
-            console.log('USER :', data.prediction);
+            console.log('USER:', data.prediction);
+
+            // Map the control keywords to their respective values
+            const controlMapping = {
+                'หยุด': '000',
+                'เดินหน้า': '001',
+                'หันซ้าย': '010',
+                'หันขวา': '011',
+                'ถอยหลัง': '100',
+                'ห้องประชุม': '101',
+                'ห้องครัว': '110',
+                'ห้องผู้บริหาร': '111'
+            };
+
+            // Initialize control value to null
+            let controlValue = null;
+
+            // Check if the text corresponds to a control keyword
+            for (const keyword in controlMapping) {
+                if (text.includes(keyword)) {
+                    controlValue = controlMapping[keyword];
+                    break; // Stop searching if a keyword is found
+                }
+            }
+
+            // Create a JSON object with specific user information and control value
+            const jsonContent = {
+                user: 'SANDEE JSON TEST',
+                My_Text: text,
+                Control: controlValue,
+                timestamp: new Date().toISOString()
+            };
+
+            // Convert JSON object to string
+            const jsonString = JSON.stringify(jsonContent, null, 2); // 2-space indentation
+
+            // Write to a JSON file
+            const jsonFilePath = 'control.json'; // Replace with your desired file path
+            fs.writeFileSync(jsonFilePath, jsonString);
+
             return {
                 messages: [{
                     //user: users.cropUser(user),
@@ -105,11 +144,12 @@ async function stt(filePath) {
 async function nlp(text) {
     const form = new FormData()
     form.append("userId", "newsandee")
-    form.append("device", "A02")
     form.append("language", "th")
+    form.append("device", "A02")
     form.append("query", text)
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 
-    const result = await fetch(`http://3.1.123.125/chatbot`, {
+    const result = await fetch(`https://sandeemonitor.voice-ai-cai-cpall.link/chatbot`, {
         method: "POST",
         body: form
     })
@@ -128,50 +168,6 @@ async function nlp(text) {
         console.error('Error Type');
     }
 }
-
-
-// async function tts(BotAnswer) {
-//     const form = new FormData();
-//     form.append("text", BotAnswer);
-
-//     try {
-//         const response = await fetch('http://boonchuai-eks-ingress-799182153.ap-southeast-1.elb.amazonaws.com/tts', {
-//             method: 'POST',
-//             body: form,
-//             headers: {
-//                 'x-access-token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImNwY2FsbGNlbnRlckBraW5wby5jb20udGgiLCJleHAiOjE5MzkxMjY3NDl9.0UIschPQwJp1euUk3el3WFyY_AC2_wO5jq9F4yjdJeo' // แทน YOUR_ACCESS_TOKEN ด้วยโทเคนของคุณ
-//             }
-//         });
-
-//         if (response.ok) {
-
-//             // const wavData = await response.blob();
-//             // const audioUrl = URL.createObjectURL(wavData);
-//             // io.emit('audioUrl', audioUrl);
-
-//             const wavArrayBuffer = await response.arrayBuffer();
-//             const wavBuffer = Buffer.from(wavArrayBuffer); // แปลงเป็น Buffer
-//             await fs.promises.writeFile('output.wav', wavBuffer); // เขียนลงในไฟล์
-
-//             const player = require('play-sound')();
-
-//             const filePath = 'D:/Screen_Face/test/output.wav';
-
-//             player.play(filePath, (err) => {
-//                 if (err) {
-//                     console.error('Error playing audio:', err);
-//                 } else {
-//                     console.log('Audio played successfully');
-//                 }
-//             });
-
-//         } else {
-//             console.error('Failed to call the TTS API:', response.status, response.statusText);
-//         }
-//     } catch (error) {
-//         console.error('Error calling the TTS API:', error);
-//     }
-// }
 
 
 async function createWav(data) {
